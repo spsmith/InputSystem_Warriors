@@ -21,7 +21,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.ext.nunit": {
-      "version": "1.0.0",
+      "version": "1.0.5",
       "depth": 1,
       "source": "registry",
       "dependencies": {},
@@ -37,7 +37,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.ide.vscode": {
-      "version": "1.2.2",
+      "version": "1.2.3",
       "depth": 0,
       "source": "registry",
       "dependencies": {},
@@ -48,6 +48,15 @@
       "depth": 0,
       "source": "registry",
       "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.multiplayer-hlapi": {
+      "version": "1.0.4",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "nuget.mono-cecil": "0.1.5-preview"
+      },
       "url": "https://packages.unity.com"
     },
     "com.unity.probuilder": {
@@ -95,11 +104,11 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.test-framework": {
-      "version": "1.1.18",
+      "version": "1.1.19",
       "depth": 0,
       "source": "registry",
       "dependencies": {
-        "com.unity.ext.nunit": "1.0.0",
+        "com.unity.ext.nunit": "1.0.5",
         "com.unity.modules.imgui": "1.0.0",
         "com.unity.modules.jsonserialize": "1.0.0"
       },
@@ -129,6 +138,22 @@
         "com.unity.modules.ui": "1.0.0",
         "com.unity.modules.imgui": "1.0.0"
       }
+    },
+    "com.widve.unicave": {
+      "version": "file:G:/Work/[UniCAVE]/UniCAVE/UniCAVE2019/Assets/UniCAVE",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.textmeshpro": "2.0.1",
+        "com.unity.multiplayer-hlapi": "1.0.4"
+      }
+    },
+    "nuget.mono-cecil": {
+      "version": "0.1.5-preview",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
     },
     "com.unity.modules.ai": {
       "version": "1.0.0",
