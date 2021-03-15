@@ -24,16 +24,19 @@ namespace UniCAVE
 		[SerializeField]
 		bool ReceiveInEditor = true;
 
+		[SerializeField]
+		bool DebugPrint = false;
+
 		int TEMP_MAX_ITEMS = 16; //just for testing
 
 		InputEventTrace Trace;
 
-		static Queue<InputEvent> _traceQueue;
-		public static Queue<InputEvent> TraceQueue
+		static Queue<InputEventPtr> _traceQueue;
+		public static Queue<InputEventPtr> TraceQueue
 		{
 			get
 			{
-				if(_traceQueue == null) _traceQueue = new Queue<InputEvent>();
+				if(_traceQueue == null) _traceQueue = new Queue<InputEventPtr>();
 				return _traceQueue;
 			}
 		}
@@ -76,24 +79,7 @@ namespace UniCAVE
 
 		void TraceEvents()
 		{
-			if(Trace != null)
-			{
-				//go through new events since last update
-				InputEventPtr curEvent = new InputEventPtr();
-				while(Trace.GetNextEvent(ref curEvent))
-				{
-					//don't store the pointers - they get reused by Unity
-					//turn them into events, then turn them back into pointers later
-					TraceQueue.Enqueue(curEvent.ToEvent());
-
-					Debug.Log($"Traced event {curEvent.ToEvent()}");
-				}
-				Trace.Clear();
-
-				//ProcessEvents(TraceQueue);
-				ProcessEventsBytes(TraceQueue);
-			}
-			else
+			if(Trace == null)
 			{
 				if(ShouldTrace)
 				{
@@ -105,118 +91,65 @@ namespace UniCAVE
 					Debug.LogError($"Can't trace input; Trace is null! (ShouldTrace = {ShouldTrace}, isServer = {isServer})");
 				}
 			}
-		}
-
-		public void ProcessEvents(Queue<InputEvent> queue)
-		{
-			//first, figure out how much data we can send at once (due to packet/buffer size limits)
-
-			//don't need to do this, but we might need this later:
-			//FieldInfo mbp = typeof(NetworkManager).GetField("m_MaxBufferedPackets", BindingFlags.Instance | BindingFlags.NonPublic);
-			//int maxPackets = (int)mbp.GetValue(UniCAVENetworkManager);
-			//not sure if using reflection every frame would affect performance too much, but could just make this a serialized field
-			//	user would have to make sure it has the correct value in the inspector
-
-			int maxItems = MaxPacketSize / Marshal.SizeOf(typeof(UniCAVEInputSystem.InputEventStruct));
-			//probably need to change this later, since I'm pretty sure the actual event data will have a variable size
-			//	(since there is a sizeInBytes field...)
-			//	make an extension method for the struct that returns its total size
-
-			//send data in chunks until the queue is empty
-			int sentChunks = 0;
-			while(queue.Count > 0)
+			if(Trace != null)
 			{
-				//can't send more items than we have in the queue!
-				maxItems = Mathf.Clamp(maxItems, 0, queue.Count);
-
-				//fill this chunk from the queue
-				UniCAVEInputSystem.InputEventStruct[] ies = new UniCAVEInputSystem.InputEventStruct[maxItems];
-				for(int i = 0; i < maxItems; i++)
+				//go through new events since last update
+				InputEventPtr curEvent = new InputEventPtr();
+				while(Trace.GetNextEvent(ref curEvent))
 				{
-					ies[i] = new UniCAVEInputSystem.InputEventStruct(queue.Dequeue());
-				}
+					//don't store the pointers - they get reused by Unity
+					//turn them into events, then turn them back into pointers later
+					//UniCAVEInputSystem.DebugEvent(curEvent);
+					//UniCAVEInputSystem.DebugEvent(new UniCAVEInputSystem.InputEventBytes(curEvent).ToInputEventPtr());
+					TraceQueue.Enqueue(curEvent);
+					//TODO: skip this step and just send the pointers...
 
-				//when this chunk is full, send it
-				RpcProcessEvents(ies);
-				sentChunks++;
+					if(DebugPrint) Debug.Log($"Traced event {curEvent.ToEvent()}");
+				}
+				Trace.Clear();
+
+				ProcessEventsBytes(TraceQueue);
 			}
 		}
 
-		unsafe public void ProcessEventsBytes(Queue<InputEvent> queue)
+		unsafe public void ProcessEventsBytes(Queue<InputEventPtr> queue)
 		{
 			while(queue.Count > 0)
 			{
 				int maxItems = Mathf.Clamp(TEMP_MAX_ITEMS, 0, queue.Count);
-				UniCAVEInputSystem.InputEventPtrBytes[] ieb = new UniCAVEInputSystem.InputEventPtrBytes[maxItems];
+				UniCAVEInputSystem.InputEventBytes[] ieb = new UniCAVEInputSystem.InputEventBytes[maxItems];
 				for(int i = 0; i < ieb.Length; i++)
 				{
-					InputEvent ie = queue.Dequeue();
-					InputEventPtr iep = new InputEventPtr(&ie);
-					ieb[i] = new UniCAVEInputSystem.InputEventPtrBytes(iep);
+					InputEventPtr iep = queue.Dequeue();
+					ieb[i] = new UniCAVEInputSystem.InputEventBytes(iep);
 				}
 
 				RpcProcessEventsBytes(ieb);
 			}
 		}
 
+#if !UNITY_EDITOR
 		[ClientRpc]
-		void RpcProcessEvents(UniCAVEInputSystem.InputEventStruct[] ies)
-		{
-			if(ShouldReceive)
-			{
-				//process the array of input events in the same order they were sent from the head node
-				for(int i = 0; i < ies.Length; i++)
-				{
-					SendEvent(ies[i].ToInputEvent());
-				}
-			}
-		}
-
-		[ClientRpc]
-		void RpcProcessEventsBytes(UniCAVEInputSystem.InputEventPtrBytes[] ieb)
+#endif
+		void RpcProcessEventsBytes(UniCAVEInputSystem.InputEventBytes[] ieb)
 		{
 			if(ShouldReceive)
 			{
 				//process the array of input events in the same order they were sent from the head node
 				for(int i = 0; i < ieb.Length; i++)
 				{
-					//SendEventBytes(ieb[i].ToInputEventPtr());
 					SendEventBytes(ieb[i]);
 				}
 			}
 		}
 
-		public void SendEvent(InputEvent ie)
-		{
-			//send the event to the input queue
-			UniCAVEInputSystem.HeadNodeInput.Enqueue(ie);
-		}
-
-		public void SendEventBytes(UniCAVEInputSystem.InputEventPtrBytes ieb)
+		public void SendEventBytes(UniCAVEInputSystem.InputEventBytes ieb)
 		{
 			//for some reason, after being dequeued, InputEventPtrs come back broken
 			//maybe because they're structs?
-			//UniCAVEInputSystem.HeadNodeInputPtrs.Enqueue(iep);
-
-			//for testing, queue/replay the events now
-			InputEventPtr iep = ieb.ToNewPtr();
-			UniCAVEInputSystem.DebugEvent(iep);
-			InputSystem.QueueEvent(iep);
-			//need to queue state or text event explicitly?
-			if(ieb.type.ToString() == "STAT")
-			{
-				Debug.LogError("STAT event");
-				//InputSystem.QueueStateEvent<>
-			}
-			else if(ieb.type.ToString() == "TEXT")
-			{
-				Debug.LogError("TEXT event");
-				//InputSystem.QueueTextEvent(InputSystem.GetDeviceById(ieb.deviceId), )
-			}
-			else
-			{
-				Debug.LogError($"Unkown event type: {ieb.type}");
-			}
+			//just store the bytes struct instead
+			//UniCAVEInputSystem.DebugEvent(ieb.ToInputEventPtr());
+			UniCAVEInputSystem.HeadNodeInput.Enqueue(ieb);			
 		}
 
 		void EnableTrace()
@@ -246,7 +179,6 @@ namespace UniCAVE
 		{
 			if(ShouldTrace)
 			{
-				//start tracing events
 				EnableTrace();
 			}
 		}
@@ -255,7 +187,6 @@ namespace UniCAVE
 		{
 			if(ShouldTrace)
 			{
-				//dispose of trace (need to do this according to docs)
 				DisableTrace();
 			}
 		}
