@@ -97,12 +97,8 @@ namespace UniCAVE
 				InputEventPtr curEvent = new InputEventPtr();
 				while(Trace.GetNextEvent(ref curEvent))
 				{
-					//don't store the pointers - they get reused by Unity
-					//turn them into events, then turn them back into pointers later
-					//UniCAVEInputSystem.DebugEvent(curEvent);
-					//UniCAVEInputSystem.DebugEvent(new UniCAVEInputSystem.InputEventBytes(curEvent).ToInputEventPtr());
+					//turn into bytes now instead of later?
 					TraceQueue.Enqueue(curEvent);
-					//TODO: skip this step and just send the pointers...
 
 					if(DebugPrint) Debug.Log($"Traced event {curEvent.ToEvent()}");
 				}
@@ -129,7 +125,7 @@ namespace UniCAVE
 		}
 
 #if !UNITY_EDITOR
-		[ClientRpc]
+		[ClientRpc] //define flag is here to enable testing in the Editor
 #endif
 		void RpcProcessEventsBytes(UniCAVEInputSystem.InputEventBytes[] ieb)
 		{
@@ -145,10 +141,6 @@ namespace UniCAVE
 
 		public void SendEventBytes(UniCAVEInputSystem.InputEventBytes ieb)
 		{
-			//for some reason, after being dequeued, InputEventPtrs come back broken
-			//maybe because they're structs?
-			//just store the bytes struct instead
-			//UniCAVEInputSystem.DebugEvent(ieb.ToInputEventPtr());
 			UniCAVEInputSystem.HeadNodeInput.Enqueue(ieb);			
 		}
 

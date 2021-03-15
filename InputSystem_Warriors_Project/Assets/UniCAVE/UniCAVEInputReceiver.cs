@@ -17,33 +17,13 @@ namespace UniCAVE
 			{
 				UniCAVEInputSystem.InputEventBytes ieb = queue.Dequeue();
 				InputEventPtr iep = ieb.ToInputEventPtr();
-				UniCAVEInputSystem.DebugEvent(iep);
-				//ProcessEvent(iep);
+				ProcessEvent(iep);
 			}
 		}
 
 		public void ProcessEvent(InputEventPtr iep)
 		{
-			UniCAVEInputSystem.DebugEvent(iep);
-
-			//this is the part that's still broken
-			//need to queue state or text event explicitly?
-			if(iep.type.ToString() == "STAT")
-			{
-				Debug.LogError("STAT event");
-				//InputSystem.QueueStateEvent<>
-			}
-			else if(iep.type.ToString() == "TEXT")
-			{
-				Debug.LogError("TEXT event");
-				//InputSystem.QueueTextEvent(InputSystem.GetDeviceById(ieb.deviceId), )
-			}
-			else
-			{
-				Debug.LogError($"Unkown event type: {iep.type}");
-			}
-
-			//send to UniCAVEInputPlayback to play back events...
+			Playback.PlayEvent(iep);
 		}
 
 		//make this LateUpdate...?

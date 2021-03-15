@@ -98,7 +98,7 @@ LightmapSettings:
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 0}
-  m_UseShadowmask: 1
+  m_UseShadowmask: 0
 --- !u!196 &4
 NavMeshSettings:
   serializedVersion: 2
@@ -6249,7 +6249,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 10c2fd873b12541b392f10ecc4846574, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_NetworkPort: 7778
+  m_NetworkPort: 7777
   m_ServerBindToIP: 0
   m_ServerBindAddress: 
   m_NetworkAddress: localhost
@@ -6780,6 +6780,7 @@ GameObject:
   - component: {fileID: 9095172060135373079}
   - component: {fileID: 5023596419025225630}
   - component: {fileID: 5023596419025225631}
+  - component: {fileID: 5023596419025225632}
   m_Layer: 0
   m_Name: CAVE
   m_TagString: Untagged
@@ -6810,12 +6811,25 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5023596419025225629}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 97e00f61c2e212e42bd57eea52f6cc4a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Playback: {fileID: 0}
+  Playback: {fileID: 5023596419025225632}
+--- !u!114 &5023596419025225632
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5023596419025225629}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b10151649cd0978498f7e6f2bfae3ff0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Delay: 0
 --- !u!1 &5305496450136948628
 GameObject:
   m_ObjectHideFlags: 0

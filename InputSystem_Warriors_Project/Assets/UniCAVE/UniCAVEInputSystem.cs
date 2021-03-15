@@ -36,34 +36,19 @@ namespace UniCAVE
                 GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
 				try
 				{
-                    //this seems to be the correct way to do it:
-                    //InputEvent ie = (InputEvent)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(InputEvent));
-                    //newPtr = new InputEventPtr(&ie); //will this pointer always be valid?
+                    //take another look at this... it works, but are both the GCHandle and fixed{} statement necessary?
+                    //could maybe get away with just fixed{}
                     fixed(byte* dataPtr = data)
                     {
                         //simply use the byte[] as the raw data for the InputEvent
                         newPtr = new InputEventPtr((InputEvent*)dataPtr);
                     }
-                    //DebugEvent(newPtr);
                 }
 				finally
 				{
                     handle.Free();
 				}
-                //DebugEvent(newPtr);
                 return newPtr;
-			}
-
-            //old version:
-            public InputEventPtr OldToInputEventPtr()
-			{
-                //convert back into an InputEventPtr based on type
-                GCHandle pinned = GCHandle.Alloc(data, GCHandleType.Pinned);
-                InputEventPtr iep = (InputEventPtr)Marshal.PtrToStructure(pinned.AddrOfPinnedObject(), typeof(InputEventPtr));
-                pinned.Free();
-                //Debug.Log($"Deserialized {iep}");
-                //DebugEvent(iep);
-                return iep;
 			}
 		}
 
