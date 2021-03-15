@@ -43,9 +43,9 @@ namespace UniCAVE
         public readonly struct InputEventPtrBytes
 		{
             public readonly byte[] data;
-            //public readonly int deviceId;
-            //public readonly double time;
-            //public readonly int type;
+            public readonly int deviceId;
+            public readonly double time;
+            public readonly int type;
 
             unsafe public InputEventPtrBytes(InputEventPtr iep)
 			{
@@ -53,9 +53,9 @@ namespace UniCAVE
                 data = CopyEventData(iep);
 
                 //store the other information we might need (might not need to do this after all)
-                //deviceId = iep.deviceId;
-                //time = iep.time;
-                //type = FourCC.ToInt32(iep.type);
+                deviceId = iep.deviceId;
+                time = iep.time;
+                type = FourCC.ToInt32(iep.type);
 			}
 
             public unsafe InputEventPtr ToNewPtr()
@@ -72,8 +72,8 @@ namespace UniCAVE
 				{
                     handle.Free();
 				}
-                if(newPtr != null) DebugEvent(newPtr);
-                else Debug.LogError("ToNewPtr returned null!");
+                //if(newPtr != null) DebugEvent(newPtr);
+                //else Debug.LogError("ToNewPtr returned null!");
                 return newPtr;
 			}
 
@@ -86,7 +86,7 @@ namespace UniCAVE
                 InputEventPtr iep = (InputEventPtr)Marshal.PtrToStructure(pinned.AddrOfPinnedObject(), typeof(InputEventPtr));
                 pinned.Free();
                 //Debug.Log($"Deserialized {iep}");
-                DebugEvent(iep);
+                //DebugEvent(iep);
                 return iep;
 			}
 		}

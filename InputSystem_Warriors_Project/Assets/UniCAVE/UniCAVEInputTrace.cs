@@ -181,7 +181,7 @@ namespace UniCAVE
 				for(int i = 0; i < ieb.Length; i++)
 				{
 					//SendEventBytes(ieb[i].ToInputEventPtr());
-					SendEventBytes(ieb[i].ToNewPtr());
+					SendEventBytes(ieb[i]);
 				}
 			}
 		}
@@ -192,9 +192,31 @@ namespace UniCAVE
 			UniCAVEInputSystem.HeadNodeInput.Enqueue(ie);
 		}
 
-		public void SendEventBytes(InputEventPtr iep)
+		public void SendEventBytes(UniCAVEInputSystem.InputEventPtrBytes ieb)
 		{
-			UniCAVEInputSystem.HeadNodeInputPtrs.Enqueue(iep);
+			//for some reason, after being dequeued, InputEventPtrs come back broken
+			//maybe because they're structs?
+			//UniCAVEInputSystem.HeadNodeInputPtrs.Enqueue(iep);
+
+			//for testing, queue/replay the events now
+			InputEventPtr iep = ieb.ToNewPtr();
+			UniCAVEInputSystem.DebugEvent(iep);
+			InputSystem.QueueEvent(iep);
+			//need to queue state or text event explicitly?
+			if(ieb.type.ToString() == "STAT")
+			{
+				Debug.LogError("STAT event");
+				//InputSystem.QueueStateEvent<>
+			}
+			else if(ieb.type.ToString() == "TEXT")
+			{
+				Debug.LogError("TEXT event");
+				//InputSystem.QueueTextEvent(InputSystem.GetDeviceById(ieb.deviceId), )
+			}
+			else
+			{
+				Debug.LogError($"Unkown event type: {ieb.type}");
+			}
 		}
 
 		void EnableTrace()
