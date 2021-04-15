@@ -94,5 +94,9 @@ namespace UniCAVE
                 return _headNodeInput;
             }
         }
+
+        public static bool ShouldSimulatePhysicsThisFrame = false;
+
+        public static float FixedDeltaTime = 0;
     }
 }

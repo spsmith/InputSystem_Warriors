@@ -11,6 +11,9 @@ namespace UniCAVE
 		[SerializeField]
 		UniCAVEInputPlayback Playback;
 
+		[SerializeField]
+		bool ReceiveInput = true;
+
 		public void ProcessQueue(Queue<UniCAVEInputSystem.InputEventBytes> queue)
 		{
 			while(queue.Count > 0)
@@ -29,7 +32,10 @@ namespace UniCAVE
 		//make this LateUpdate...?
 		void Update()
 		{
-			ProcessQueue(UniCAVEInputSystem.HeadNodeInput);
+			if(ReceiveInput)
+			{
+				ProcessQueue(UniCAVEInputSystem.HeadNodeInput);
+			}
 		}
 	}
 }

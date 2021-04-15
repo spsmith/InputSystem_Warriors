@@ -12,12 +12,7 @@ namespace UniCAVE
 {
     public class UniCAVEInputTrace : NetworkBehaviour
     {
-		//[SerializeField]
-		//NetworkManager UniCAVENetworkManager;
-
-		[SerializeField]
-		int MaxPacketSize = 1400;
-
+		[Header("Editor Options")]
 		[SerializeField]
 		bool TraceInEditor = true;
 
@@ -25,7 +20,17 @@ namespace UniCAVE
 		bool ReceiveInEditor = true;
 
 		[SerializeField]
+		bool AutoSimulatePhysicsInEditor = true;
+
+		[SerializeField]
 		bool DebugPrint = false;
+
+		[Header("Network Options")]
+		[SerializeField]
+		bool SendInput = true;
+
+		[SerializeField]
+		bool SendPhysicsUpdates = true;
 
 		int TEMP_MAX_ITEMS = 16; //just for testing
 
@@ -77,6 +82,19 @@ namespace UniCAVE
 			}
 		}
 
+		//server should simulate physics
+		bool ShouldSimulatePhysicsManually
+		{
+			get
+			{
+#if UNITY_EDITOR
+				return !AutoSimulatePhysicsInEditor;
+#else
+				return Application.isPlaying && isServer;
+#endif
+			}
+		}
+
 		void TraceEvents()
 		{
 			if(Trace == null)
@@ -120,7 +138,7 @@ namespace UniCAVE
 					ieb[i] = new UniCAVEInputSystem.InputEventBytes(iep);
 				}
 
-				RpcProcessEventsBytes(ieb);
+				if(SendInput) RpcProcessEventsBytes(ieb);
 			}
 		}
 
@@ -142,6 +160,18 @@ namespace UniCAVE
 		public void SendEventBytes(UniCAVEInputSystem.InputEventBytes ieb)
 		{
 			UniCAVEInputSystem.HeadNodeInput.Enqueue(ieb);			
+		}
+
+#if !UNITY_EDITOR
+		[ClientRpc]
+#endif
+		void RpcSimulatePhysics(float fixedDeltaTime)
+		{
+			Physics.Simulate(fixedDeltaTime);
+			return;
+			//tell child nodes they will need to simulate physics this fixed timestep
+			UniCAVEInputSystem.ShouldSimulatePhysicsThisFrame = true;
+			UniCAVEInputSystem.FixedDeltaTime = fixedDeltaTime;
 		}
 
 		void EnableTrace()
@@ -167,12 +197,47 @@ namespace UniCAVE
 			}
 		}
 
+		void FixedUpdate()
+		{
+			if(ShouldSimulatePhysicsManually)
+			{
+				//store current timescale
+				float timescale = Time.timeScale;
+				Time.timeScale = 1;
+
+				float fixedDeltaTime = Time.fixedDeltaTime;
+
+				//simulate physics as usual, but on head node only
+				Physics.Simulate(fixedDeltaTime);
+
+#if !UNITY_EDITOR
+				//tell the child nodes to simulate physics as well
+				if(SendPhysicsUpdates) RpcSimulatePhysics(fixedDeltaTime);
+#endif
+
+				//restore original timescale when done
+				Time.timeScale = timescale;
+			}
+		}
+
 		void OnEnable()
 		{
+			//don't simulate physics automatically - only trigger the simulation manually
+#if UNITY_EDITOR
+			Physics.autoSimulation = AutoSimulatePhysicsInEditor;
+#else
+			if(SendPhysicsUpdates) Physics.autoSimulation = false;
+#endif
+
 			if(ShouldTrace)
 			{
 				EnableTrace();
 			}
+		}
+
+		void Start()
+		{
+			Debug.Log($"Physics.autoSimulation is {Physics.autoSimulation}");
 		}
 
 		void OnDisable()
