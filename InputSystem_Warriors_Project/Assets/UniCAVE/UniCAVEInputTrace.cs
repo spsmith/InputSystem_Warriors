@@ -110,10 +110,6 @@ namespace UniCAVE
 
 		unsafe public void ProcessEventsBytes(Queue<InputEventPtr> queue)
 		{
-			int numEvents = queue.Count;
-
-			UniCAVEInputSystem.FrameEvents frameEvents = new UniCAVEInputSystem.FrameEvents(Time.frameCount, numEvents);
-
 			while(queue.Count > 0)
 			{
 				int maxItems = Mathf.Clamp(TEMP_MAX_ITEMS, 0, queue.Count);
@@ -121,13 +117,11 @@ namespace UniCAVE
 				for(int i = 0; i < ieb.Length; i++)
 				{
 					InputEventPtr iep = queue.Dequeue();
-					ieb[i] = new UniCAVEInputSystem.InputEventBytes(iep, Time.frameCount, numEvents);
+					ieb[i] = new UniCAVEInputSystem.InputEventBytes(iep);
 				}
 
 				RpcProcessEventsBytes(ieb);
 			}
-
-			RpcProcessFrameEvents(frameEvents);
 		}
 
 #if !UNITY_EDITOR
@@ -142,17 +136,6 @@ namespace UniCAVE
 				{
 					SendEventBytes(ieb[i]);
 				}
-			}
-		}
-
-#if !UNITY_EDITOR
-		[ClientRpc]
-#endif
-		void RpcProcessFrameEvents(UniCAVEInputSystem.FrameEvents frameEvents)
-		{
-			if(ShouldReceive)
-			{
-				UniCAVEInputSystem.HeadNodeFrames.Enqueue(frameEvents);
 			}
 		}
 
@@ -176,7 +159,6 @@ namespace UniCAVE
 			}
 		}
 
-		//late update instead?
 		void Update()
 		{
 			if(ShouldTrace)

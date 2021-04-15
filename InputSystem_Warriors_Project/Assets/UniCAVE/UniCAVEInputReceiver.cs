@@ -17,13 +17,13 @@ namespace UniCAVE
 			{
 				UniCAVEInputSystem.InputEventBytes ieb = queue.Dequeue();
 				InputEventPtr iep = ieb.ToInputEventPtr();
-				ProcessEvent(iep, ieb.frameNumber);
+				ProcessEvent(iep);
 			}
 		}
 
-		public void ProcessEvent(InputEventPtr iep, int frameNumber)
+		public void ProcessEvent(InputEventPtr iep)
 		{
-			Playback.QueueEvent(iep, frameNumber);
+			Playback.PlayEvent(iep);
 		}
 
 		//make this LateUpdate...?

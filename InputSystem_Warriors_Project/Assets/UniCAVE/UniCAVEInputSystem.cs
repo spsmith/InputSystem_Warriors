@@ -11,40 +11,22 @@ namespace UniCAVE
 {
     public static class UniCAVEInputSystem
     {
-        public readonly struct FrameEvents
-        {
-            public readonly int frameNumber;
-            public readonly int numEvents;
-
-            public FrameEvents(int frameNumber, int numEvents)
-			{
-                this.frameNumber = frameNumber;
-                this.numEvents = numEvents;
-			}
-        }
-
         public readonly struct InputEventBytes
 		{
             public readonly byte[] data;
-            public readonly int frameNumber;
-            public readonly int eventsThisFrame;
+            public readonly int deviceId;
+            public readonly double time;
+            public readonly int type;
 
-            //public readonly int deviceId;
-            //public readonly double time;
-            //public readonly int type;
-
-            unsafe public InputEventBytes(InputEventPtr iep, int frameNumber, int eventsThisFrame)
+            unsafe public InputEventBytes(InputEventPtr iep)
 			{
                 //copy raw data from InputEventPtr into a byte[]
                 data = CopyEventData(iep);
 
-                this.frameNumber = frameNumber;
-                this.eventsThisFrame = eventsThisFrame;
-
                 //store the other metadata we might need (might not need to do this after all)
-                //deviceId = iep.deviceId;
-                //time = iep.time;
-                //type = FourCC.ToInt32(iep.type);
+                deviceId = iep.deviceId;
+                time = iep.time;
+                type = FourCC.ToInt32(iep.type);
 			}
 
             public unsafe InputEventPtr ToInputEventPtr()
@@ -112,15 +94,5 @@ namespace UniCAVE
                 return _headNodeInput;
             }
         }
-
-        static Queue<FrameEvents> _headNodeFrames;
-        public static Queue<FrameEvents> HeadNodeFrames
-		{
-			get
-			{
-                if(_headNodeFrames == null) _headNodeFrames = new Queue<FrameEvents>();
-                return _headNodeFrames;
-			}
-		}
     }
 }
