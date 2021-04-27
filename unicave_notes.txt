@@ -1,0 +1,13 @@
+Setup:
+This project needs the latest UniCAVE package to run. All additonal UniCAVE scripts and other assets are in the Assets/UniCAVE folder.
+
+The node can be launched using the Python cluster launcher on a single machine, although the PhysicalDisplay parameters for the child nodes will likely need to be changed.
+
+Current status:
+The UniCAVEInputTrace script collects input from Unity's input system and sends it to child nodes. The UniCAVEInputReceiver and UniCAVEInputPlayback scripts process this input once it is received.
+
+The input trace script is a bit messy since it is trying to sync physics updates as well. Currently this is half working. Automatic physics updates are turned off for both the head and child nodes. The head node simulates physics during FixedUpdate(), then sends an RPC call to child nodes telling them to simulate as well. Once the children have simulated, they send a Command back to the head saying they have done so. The head node will only simulate physics again once it has received a notification that all child nodes have simualted. This is currently not working on my local machine as only one child node is correctly sending a command.
+
+The UniCAVEPlayer script serves as the player object for Unity's networking system. This allows it to send Commands. This would be a useful script for most UniCAVE projects. There is code in the input trace script that checks if child nodes are ready; this is probably the first thing to port to a general UniCAVE script since it would be the most useful. The player is spawned by giving the NetworkManager the UniCAVEPlayer prefab to spawn.
+
+The UniCAVEInputSystem script contains several static functions and structs used with the input system. Some stuff in here might be moved to a similar static UniCAVE class to use with the UniCAVEPlayer script.
