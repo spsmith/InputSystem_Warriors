@@ -12,6 +12,17 @@ namespace UniCAVE
 {
     public class UniCAVEInputTrace : NetworkBehaviour
     {
+		
+
+		[SerializeField]
+		UCNetwork UniCAVENetwork;
+
+		[SerializeField]
+		NetworkManager UniCAVENetworkManager;
+
+		[SerializeField]
+		UniCAVEInputReceiver InputReceiver;
+
 		[Header("Editor Options")]
 		[SerializeField]
 		bool TraceInEditor = true;
@@ -31,6 +42,8 @@ namespace UniCAVE
 
 		[SerializeField]
 		bool SendPhysicsUpdates = true;
+
+		UniCAVEPlayer Player => UniCAVEInputSystem.Player;
 
 		int TEMP_MAX_ITEMS = 16; //just for testing
 
@@ -91,6 +104,19 @@ namespace UniCAVE
 				return !AutoSimulatePhysicsInEditor;
 #else
 				return Application.isPlaying && isServer;
+#endif
+			}
+		}
+
+		bool ReadyToSimulatePhysics
+		{
+			get
+			{
+#if UNITY_EDITOR
+				return true;
+#else
+				return (isServer && UniCAVEInputSystem.PhysicsState == UniCAVEInputSystem.PhysicsStates.HeadWillSimulate) ||
+					   (isClient);
 #endif
 			}
 		}
@@ -167,11 +193,28 @@ namespace UniCAVE
 #endif
 		void RpcSimulatePhysics(float fixedDeltaTime)
 		{
-			Physics.Simulate(fixedDeltaTime);
-			return;
-			//tell child nodes they will need to simulate physics this fixed timestep
-			UniCAVEInputSystem.ShouldSimulatePhysicsThisFrame = true;
-			UniCAVEInputSystem.FixedDeltaTime = fixedDeltaTime;
+			Debug.LogError("Child is simulating");
+			//should only be run on children
+			UniCAVEInputSystem.SimulatePhysics(fixedDeltaTime);
+
+			//wait for head to simulate before simulating again
+			UniCAVEInputSystem.PhysicsState = UniCAVEInputSystem.PhysicsStates.WaitingForHeadSimulate;
+
+			//tell head this child has simulated
+			//commands can only be run from the player object
+			Player.CmdChildHasSimulated(UniCAVE.Util.GetMachineName());
+			Debug.LogError($"Child sent command (hasAuthority: {hasAuthority}, localPlayer: {isLocalPlayer})");
+		}
+
+		void SimulatePhysics(float fixedDeltaTime)
+		{
+			//Debug.LogError("Simulating on head node");
+
+			//should only be run on head
+			UniCAVEInputSystem.SimulatePhysics(fixedDeltaTime);
+
+			//wait for children to simulate before simulating on head again
+			UniCAVEInputSystem.PhysicsState = UniCAVEInputSystem.PhysicsStates.WaitingForChildSimulate;
 		}
 
 		void EnableTrace()
@@ -199,24 +242,59 @@ namespace UniCAVE
 
 		void FixedUpdate()
 		{
+			//if(Time.realtimeSinceStartup < 5) return;
 			if(ShouldSimulatePhysicsManually)
 			{
-				//store current timescale
-				float timescale = Time.timeScale;
-				Time.timeScale = 1;
+				//check if all children have simulated
+				//Debug.LogError($"{UniCAVEPlayer.SimulatedChildren} out of {UniCAVEPlayer.Children} children have simulated");
 
-				float fixedDeltaTime = Time.fixedDeltaTime;
+				//number of players should equal number of unicave displays plus one (because the server also spawns a player)
+				int totalChildren = UniCAVENetwork.GetAllDisplays().Count; //cache this value somewhere instead of checking every time...
 
-				//simulate physics as usual, but on head node only
-				Physics.Simulate(fixedDeltaTime);
+				if(UniCAVEPlayer.Children >= totalChildren + 1)
+				{
+					//Debug.LogError($"Children are ready ({UniCAVEPlayer.Children} children, {totalChildren} displays)");
+				}
+				else
+				{
+					//don't simulate yet
+					//Debug.LogError($"Children are not ready ({UniCAVEPlayer.Children} children, {totalChildren} displays)");
+					return;
+				}
+
+				if(UniCAVEPlayer.SimulatedChildren >= UniCAVEPlayer.Children - 1) //minus one because one 'child' is the server, which doesn't simulate here
+				{
+					//all children have simulated, safe to simulate again on head node
+					Debug.LogError("Head will simulate");
+					UniCAVEInputSystem.PhysicsState = UniCAVEInputSystem.PhysicsStates.HeadWillSimulate;
+					UniCAVEPlayer.SimulatedChildren = 0;
+				}
+
+				//Debug.LogError($"PhysicsState is {UniCAVEInputSystem.PhysicsState}");
+
+				if(ReadyToSimulatePhysics)
+				{
+					//store current timescale
+					float timescale = Time.timeScale;
+					Time.timeScale = 1;
+
+					float fixedDeltaTime = Time.fixedDeltaTime;
+
+					//simulate physics as usual, but on head node only
+					SimulatePhysics(fixedDeltaTime);
 
 #if !UNITY_EDITOR
-				//tell the child nodes to simulate physics as well
-				if(SendPhysicsUpdates) RpcSimulatePhysics(fixedDeltaTime);
+					//tell the child nodes to simulate physics as well
+					if(SendPhysicsUpdates)
+					{
+						RpcSimulatePhysics(fixedDeltaTime);
+						//SimulatingChildren = UniCAVENetwork.GetAllDisplays().Count;
+					}
 #endif
 
-				//restore original timescale when done
-				Time.timeScale = timescale;
+					//restore original timescale when done
+					Time.timeScale = timescale;
+				}
 			}
 		}
 
@@ -238,6 +316,17 @@ namespace UniCAVE
 		void Start()
 		{
 			Debug.Log($"Physics.autoSimulation is {Physics.autoSimulation}");
+
+			if(isServer)
+			{
+				//head node
+				UniCAVEInputSystem.PhysicsState = UniCAVEInputSystem.PhysicsStates.HeadWillSimulate;
+			}
+			else
+			{
+				//child node
+				UniCAVEInputSystem.PhysicsState = UniCAVEInputSystem.PhysicsStates.WaitingForHeadSimulate;
+			}
 		}
 
 		void OnDisable()

@@ -11,6 +11,9 @@ namespace UniCAVE
 {
     public static class UniCAVEInputSystem
     {
+        public enum PhysicsStates { HeadWillSimulate, ChildWillSimulate, WaitingForChildSimulate, WaitingForHeadSimulate }
+        public static PhysicsStates PhysicsState { get; set; }
+
         public readonly struct InputEventBytes
 		{
             public readonly byte[] data;
@@ -95,8 +98,30 @@ namespace UniCAVE
             }
         }
 
+        static UniCAVEPlayer _player;
+        /// <summary>
+        /// THe UniCAVEPlayer instance for this Unity instance. Serves as the player for netowrking purposes (e.g. sending Commands to the head node).
+        /// </summary>
+        public static UniCAVEPlayer Player
+        {
+			get
+			{
+                if(!_player) _player = GameObject.FindObjectOfType<UniCAVEPlayer>();
+                return _player;
+			}
+        }
+
         public static bool ShouldSimulatePhysicsThisFrame = false;
 
         public static float FixedDeltaTime = 0;
+
+        public static void SimulatePhysics(float fixedDeltaTime)
+		{
+            //simulate physics while avoiding any timescale issues
+            float timescale = Time.timeScale;
+            Time.timeScale = 1;
+            Physics.Simulate(fixedDeltaTime);
+            Time.timeScale = timescale;
+        }
     }
 }

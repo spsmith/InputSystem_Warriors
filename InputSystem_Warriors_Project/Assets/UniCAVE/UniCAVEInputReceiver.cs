@@ -14,6 +14,15 @@ namespace UniCAVE
 		[SerializeField]
 		bool ReceiveInput = true;
 
+		bool WillSimulatePhysics
+		{
+			get
+			{
+				return UniCAVEInputSystem.PhysicsState == UniCAVEInputSystem.PhysicsStates.ChildWillSimulate ||
+					   UniCAVEInputSystem.PhysicsState == UniCAVEInputSystem.PhysicsStates.HeadWillSimulate;
+			}
+		}
+
 		public void ProcessQueue(Queue<UniCAVEInputSystem.InputEventBytes> queue)
 		{
 			while(queue.Count > 0)
@@ -34,6 +43,7 @@ namespace UniCAVE
 		{
 			if(ReceiveInput)
 			{
+				//only process input if physics will be simulated
 				ProcessQueue(UniCAVEInputSystem.HeadNodeInput);
 			}
 		}
